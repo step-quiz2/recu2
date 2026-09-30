@@ -35,6 +35,10 @@ function comprova(nom, cond, extra) {
   else { ko++; console.log('  FALLA ' + nom + (extra !== undefined ? '  ' + extra : '')); }
 }
 
+/* Una pregunta, a paper, és una pregunta sola o un apartat d'un grup (6a,
+   6b). Cadascuna té les seves eines i el seu espai. */
+const PREGUNTES = '.pregunta:not(.pregunta-grup), .apartat';
+
 /** Pàgines d'un PDF: es compten els objectes /Type /Page. */
 const paginesPdf = buf => (buf.toString('latin1').match(/\/Type\s*\/Page[^s]/g) || []).length;
 
@@ -74,7 +78,8 @@ const paginesPdf = buf => (buf.toString('latin1').match(/\/Type\s*\/Page[^s]/g) 
   await pag.click('[data-curs="1eso"]');
   await pag.waitForTimeout(600);
   const desp = await pag.evaluate(() => ({
-    preguntes: document.querySelectorAll('.pregunta').length,
+    preguntes: document.querySelectorAll(
+      '.pregunta:not(.pregunta-grup), .apartat').length,
     subtitol: (document.querySelector('.doc-cap .subtitol') || {}).textContent,
     katex: document.querySelectorAll('.katex').length
   }));
@@ -85,7 +90,7 @@ const paginesPdf = buf => (buf.toString('latin1').match(/\/Type\s*\/Page[^s]/g) 
   /* La volta ha d'oferir preguntes noves i no repetir-ne cap fins haver-les
      mostrat totes. És el bug de A, B, B, A, C. */
   const firma = () => pag.evaluate(() => {
-    const c = document.querySelector('.pregunta-cos');
+    const c = document.querySelector('.pregunta-eines').parentElement.querySelector('.pregunta-cos');
     const g = c.querySelector('svg');
     return c.textContent.replace(/\s+/g, ' ').trim() + '|' + (g ? g.outerHTML.length : 0);
   });
@@ -157,10 +162,14 @@ const paginesPdf = buf => (buf.toString('latin1').match(/\/Type\s*\/Page[^s]/g) 
         g.checked = f; g.dispatchEvent(new Event('change'));
       }, [cap, fig]);
       await pag.waitForTimeout(150);
-      const buides = await pag.evaluate(() =>
-        [...document.querySelectorAll('.pregunta-cos')]
-          .filter(x => x.textContent.replace(/\s+/g, ' ').trim().length < 12 &&
-                       !x.querySelector('svg')).length);
+      /* En un apartat, la consigna és a la capçalera del grup: compta. */
+      const buides = await pag.evaluate(sel =>
+        [...document.querySelectorAll(sel)].filter(el => {
+          const grup = el.closest('.pregunta-grup');
+          const txt = (grup ? grup.querySelector('.grup-cap').textContent : '') +
+                      el.querySelector('.pregunta-cos').textContent;
+          return txt.replace(/\s+/g, ' ').trim().length < 12 && !el.querySelector('svg');
+        }).length, PREGUNTES);
       comprova(`cap pregunta buida (enunciats=${cap}, figures=${fig})`, !buides, buides);
     }
   }
@@ -174,20 +183,20 @@ const paginesPdf = buf => (buf.toString('latin1').match(/\/Type\s*\/Page[^s]/g) 
   });
   await pag.waitForTimeout(250);
   let tapats = 0, botons = 0;
-  const quantes = await pag.evaluate(() => document.querySelectorAll('.pregunta').length);
-  for (let i = 1; i <= quantes; i++) {
-    await pag.evaluate(j => document.querySelectorAll('.pregunta')[j - 1]
-      .scrollIntoView({ block: 'center' }), i);
-    await pag.hover(`.pregunta:nth-child(${i}) .pregunta-cos`);
+  const quantes = await pag.evaluate(sel => document.querySelectorAll(sel).length, PREGUNTES);
+  for (let i = 0; i < quantes; i++) {
+    await pag.evaluate(([sel, j]) => document.querySelectorAll(sel)[j]
+      .scrollIntoView({ block: 'center' }), [PREGUNTES, i]);
+    await pag.locator(PREGUNTES).nth(i).locator('.pregunta-cos').first().hover();
     await pag.waitForTimeout(30);
-    const r = await pag.evaluate(j => {
-      const pr = document.querySelectorAll('.pregunta')[j - 1];
-      return [...pr.querySelectorAll('.pregunta-eines button')].map(b => {
+    const r = await pag.evaluate(([sel, j]) => {
+      const pr = document.querySelectorAll(sel)[j];
+      return [...pr.querySelectorAll(':scope > .pregunta-eines button')].map(b => {
         const c = b.getBoundingClientRect();
         const d = document.elementFromPoint(c.x + c.width / 2, c.y + c.height / 2);
         return !!d && (d === b || b.contains(d));
       });
-    }, i);
+    }, [PREGUNTES, i]);
     r.forEach(lliure => { botons++; if (!lliure) tapats++; });
   }
   comprova(`tots els botons de les preguntes es poden clicar (${botons})`, !tapats, tapats);
@@ -224,8 +233,11 @@ const paginesPdf = buf => (buf.toString('latin1').match(/\/Type\s*\/Page[^s]/g) 
      prova. Es compara el text tal com surt imprès. */
   await pag.click('[data-doc="prova"]');
   await pag.waitForTimeout(300);
-  const textProva = await pag.evaluate(() => [...document.querySelectorAll('.pregunta-cos')]
-    .map(el => el.textContent.replace(/\s+/g, ' ').trim()));
+  const textProva = await pag.evaluate(sel => [...document.querySelectorAll(sel)].map(el => {
+    const grup = el.closest('.pregunta-grup');
+    return ((grup ? grup.querySelector('.grup-cap .pregunta-cos').textContent : '') +
+            el.querySelector('.pregunta-cos').textContent).replace(/\s+/g, ' ').trim();
+  }), PREGUNTES);
   const repetits = pla.exercicis.filter(t => textProva.includes(t));
   comprova('cap exercici de pràctica és una pregunta de la prova', !repetits.length,
     repetits.slice(0, 2).join(' | '));
@@ -292,6 +304,61 @@ const paginesPdf = buf => (buf.toString('latin1').match(/\/Type\s*\/Page[^s]/g) 
       !errs.length && r.barra && !r.undef, errs.join(' | '));
     await p3.close();
   }
+
+  console.log('Apartats i temps');
+  /* Tres variants seguides del mateix generador (mateix exercici i
+     mateixa consigna) han de sortir com a «2. a) b) c)», i la clau i la
+     graella les han de dir 2a, 2b, 2c. */
+  const ambApartats = '#' + b64({
+    s: ['2eso-num-divisibilitat', '2eso-alg-equacions'], l: 'APART', du: 55,
+    q7: [['p-div-mcd-0', '2eso-num-divisibilitat'], ['p-equ-dos-passos-0', '2eso-alg-equacions'],
+         ['p-equ-dos-passos-1', '2eso-alg-equacions'], ['p-equ-dos-passos-2', '2eso-alg-equacions'],
+         ['f5-75a', '2eso-alg-equacions']] });
+  const pa = await nav.newPage({ viewport: { width: 1560, height: 1000 } });
+  pa.on('pageerror', e => errors.push('PAGEERROR (apartats) ' + e.message));
+  await pa.goto(URL_EINA + ambApartats);
+  await pa.waitForTimeout(600);
+  const ap = await pa.evaluate(() => ({
+    nums: [...document.querySelectorAll('.pregunta-num')].map(x => x.textContent).join(' '),
+    lletres: [...document.querySelectorAll('.apartat-lletra')].map(x => x.textContent).join(' '),
+    consignes: (document.querySelector('.pregunta-grup').textContent
+      .match(/Resol aquestes equacions/g) || []).length,
+    temps: document.querySelector('#temps').textContent,
+    control: document.querySelector('#nombre-valor').textContent
+  }));
+  comprova('apartats seguits del mateix exercici surten com a 2. a) b) c)',
+    ap.nums === '1. 2. 3.' && ap.lletres === 'a) b) c)', `${ap.nums} / ${ap.lletres}`);
+  comprova('la consigna del grup s\'imprimeix un sol cop', ap.consignes === 1, ap.consignes);
+  comprova('el control diu les preguntes que hi ha de debò', ap.control === '5', ap.control);
+  /* Cinc preguntes de nivell 1 a 4 minuts, llevat de f5-75a si no ho és. */
+  comprova('el temps estimat surt en minuts', /^≈ \d+ min$/.test(ap.temps), ap.temps);
+  await pa.click('[data-doc="clau"]');
+  await pa.waitForTimeout(300);
+  const clauAp = await pa.evaluate(() => ({
+    files: [...document.querySelectorAll('.clau-taula td.n')].map(x => x.textContent).join(','),
+    graella: [...document.querySelectorAll('.graella thead th')].map(x => x.textContent).join(',')
+  }));
+  comprova('la clau numera els apartats 2a, 2b, 2c', clauAp.files === '1,2a,2b,2c,3', clauAp.files);
+  comprova('la graella també', clauAp.graella === 'Pregunta,1,2a,2b,2c,3,Total', clauAp.graella);
+  await pa.click('[data-doc="prova"]');
+  await pa.waitForTimeout(200);
+  const pdfAp = await pa.pdf({ format: 'A4', printBackground: true });
+  const estimatAp = await pa.evaluate(() =>
+    +(document.querySelector('#pagines').textContent.match(/\d+/) || [0])[0]);
+  comprova('amb apartats, el comptador de pàgines encerta (±1)',
+    Math.abs(estimatAp - paginesPdf(pdfAp)) <= 1, `diu ${estimatAp}, en surten ${paginesPdf(pdfAp)}`);
+  await pa.click('#agrupa');
+  await pa.waitForTimeout(300);
+  const sense = await pa.evaluate(() =>
+    [...document.querySelectorAll('.pregunta-num')].map(x => x.textContent).join(' '));
+  comprova('sense agrupar, cinc preguntes numerades', sense === '1. 2. 3. 4. 5.', sense);
+  /* Durada curta: el temps estimat passa a avís. */
+  await pa.fill('#durada', '10');
+  await pa.locator('#durada').dispatchEvent('change');
+  await pa.waitForTimeout(150);
+  comprova('si la prova no hi cap, el temps surt en ambre',
+    await pa.evaluate(() => document.querySelector('#temps').classList.contains('fora')));
+  await pa.close();
 
   console.log('Pantalla de portàtil');
   /* A 1280 px el full s'encongia fins a 592 px i ja no era el paper: ara

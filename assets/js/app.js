@@ -119,6 +119,7 @@
       ordre: 'curriculum',
       punts: 10,
       criteriPunts: 'nivell',
+      durada: 55,            // minuts que té l'alumne: una hora de classe
       llavor: window.Atzar.novaLlavor()
     },
     cfg: {
@@ -139,6 +140,8 @@
       figures: true,
       encapcalaments: true,
       mostraPunts: false,
+      // Preguntes consecutives del mateix exercici: 6a, 6b.
+      agrupa: true,
       // Pla de repàs: exercicis de pràctica per contingut i les solucions.
       practica: 2,
       solucionsPla: true,
@@ -158,8 +161,8 @@
      moltes vegades seguides i tornar-los a marcar cada cop és feina inútil. */
   var CAMPS_INICIALS = ['centre', 'titol', 'instruccions', 'espai', 'paper',
                         'figures', 'encapcalaments', 'mostraPunts', 'baseUrl',
-                        'practica', 'solucionsPla'];
-  var SPEC_INICIALS = ['nombre', 'perfil', 'pes', 'ordre', 'punts', 'criteriPunts'];
+                        'practica', 'solucionsPla', 'agrupa'];
+  var SPEC_INICIALS = ['nombre', 'perfil', 'pes', 'ordre', 'punts', 'criteriPunts', 'durada'];
 
   function desaInicials() {
     try {
@@ -926,6 +929,8 @@
 
   function pintaLlista() {
     var h = '';
+    var etiq = window.Composa.agrupa(estat.preguntes, banc, estat.cfg.agrupa).etiquetes;
+    pintaTemps();
     if (!estat.preguntes.length) {
       h = '<p class="buida">' + (estat.sabers.length
         ? 'Cap pregunta. Puja el nombre de preguntes o revisa els avisos.'
@@ -944,7 +949,12 @@
             '" aria-label="Posició de la pregunta ' + (i + 1) + '">' +
           '<span class="q-cos">' +
             '<span class="q-tit">' + esc(resumeix(it.cap) || resumeix(it.enunciat) || it.id) + '</span>' +
-            '<span class="q-saber">' + esc(saber ? saber.titol : it.blocTitol) + '</span>' +
+            '<span class="q-saber">' +
+              // Si és un apartat, com surt al full: «6b».
+              (etiq[i] !== String(i + 1)
+                ? '<span class="q-etiqueta" title="Al full surt com a ' + etiq[i] + '">' +
+                  etiq[i] + '</span> ' : '') +
+              esc(saber ? saber.titol : it.blocTitol) + '</span>' +
             /* El selector va en una línia pròpia. Enganxat al nom del
                contingut, dins d'una línia amb `nowrap` i punts suspensius,
                a l'amplada d'un portàtil quedava retallat: es veia
@@ -1033,6 +1043,24 @@
     return pr;
   }
 
+  /**
+   * Temps estimat de la prova contra els minuts que té l'alumne. Surt al
+   * panell, al costat del control de durada: és on es decideix quantes
+   * preguntes hi caben.
+   */
+  function pintaTemps() {
+    var t = window.Composa.minuts(estat.preguntes, banc), d = estat.spec.durada;
+    var el = $('#temps');
+    el.textContent = estat.preguntes.length ? '\u2248 ' + t + ' min' : '\u2014';
+    el.className = 'temps' + (!estat.preguntes.length ? '' : t > d ? ' fora' : ' dins');
+    el.title = estat.preguntes.length
+      ? (t > d ? 'Probablement massa llarga per a ' + d + ' minuts. ' : '') +
+        'Estimació: ' + window.Composa.MINUTS_NIVELL[1] + ' min per pregunta de nivell 1, ' +
+        window.Composa.MINUTS_NIVELL[2] + ' de nivell 2 i ' +
+        window.Composa.MINUTS_NIVELL[3] + ' de nivell 3.'
+      : '';
+  }
+
   /* --------------------------------------------------------------- el full */
   function pintaFull() {
     var cfg = Object.create(estat.cfg);
@@ -1040,7 +1068,8 @@
     cfg.editable = estat.vista === 'prova';
     cfg.fixades = estat.fixades;
 
-    var dades = { cfg: cfg, preguntes: estat.preguntes, sabers: estat.sabers };
+    var dades = { cfg: cfg, preguntes: estat.preguntes, sabers: estat.sabers,
+                  agrupacio: window.Composa.agrupa(estat.preguntes, banc, estat.cfg.agrupa) };
     if (estat.vista === 'pla') dades.practica = practicaDelPla();
     var html = estat.vista === 'clau' ? window.Full.clau(dades, banc, sabersPerId)
              : estat.vista === 'pla' ? window.Full.pla(dades, banc, sabersPerId, MAPA)
@@ -1177,7 +1206,8 @@
         fg: estat.cfg.figures ? 1 : 0, ec: estat.cfg.encapcalaments ? 1 : 0,
         ce: estat.cfg.centre, ti: estat.cfg.titol, in: estat.cfg.instruccions,
         al: estat.cfg.alumne, gr: estat.cfg.grup, da: estat.cfg.data,
-        pr: estat.cfg.practica, ps: estat.cfg.solucionsPla ? 1 : 0
+        pr: estat.cfg.practica, ps: estat.cfg.solucionsPla ? 1 : 0,
+        ag: estat.cfg.agrupa ? 1 : 0, du: estat.spec.durada
       };
       /* La llista de preguntes es desa SEMPRE, no només quan s'ha editat.
          L'especificació sola no la reprodueix: les preguntes fixades i les
@@ -1252,9 +1282,14 @@
       if (text(d.da, 10) && /^\d{4}-\d{2}-\d{2}$/.test(d.da)) estat.cfg.data = d.da;
       if ([0, 1, 2, 3].indexOf(d.pr) >= 0) estat.cfg.practica = d.pr;
       if (d.ps != null) estat.cfg.solucionsPla = !!d.ps;
+      if (d.ag != null) estat.cfg.agrupa = !!d.ag;
+      if (nombre(d.du, 5, 600)) estat.spec.durada = Math.round(d.du);
 
       if (Array.isArray(d.q7) && d.q7.length) {
         estat.preguntes = d.q7.map(llegeixPregunta).filter(Boolean);
+        // Mana la llista: si l'adreça no porta el nombre (o no quadra), el
+        // control deia «10» amb cinc preguntes al full.
+        estat.spec.nombre = estat.preguntes.length;
         (Array.isArray(d.fx) ? d.fx : []).forEach(function (id) {
           if (typeof id === 'string' && banc[id]) estat.fixades[id] = true;
         });
@@ -1434,6 +1469,8 @@
       b.setAttribute('aria-pressed', +b.dataset.practica === estat.cfg.practica);
     });
     $('#solucionsPla').checked = estat.cfg.solucionsPla;
+    $('#agrupa').checked = estat.cfg.agrupa;
+    $('#durada').value = estat.spec.durada;
   }
 
   function lliga() {
@@ -1547,6 +1584,20 @@
     // Ajusta i no refà: pujar de 9 a 12 ha d'afegir tres preguntes, no
     // canviar-ne dotze.
     $('#nombre').addEventListener('change', function () { ajusta(+this.value); });
+
+    $('#durada').addEventListener('change', function () {
+      var v = Math.round(+this.value);
+      estat.spec.durada = v >= 5 && v <= 600 ? v : 55;
+      this.value = estat.spec.durada;
+      pintaTemps();
+      desaAlHash();
+    });
+    // Canvia la numeració del full i les etiquetes del panell: es pinta tot.
+    $('#agrupa').addEventListener('change', function () {
+      estat.cfg.agrupa = this.checked;
+      pinta();
+      desaAlHash();
+    });
 
     $('#punts').addEventListener('change', function () {
       estat.spec.punts = Math.max(0.25, +this.value || 10);

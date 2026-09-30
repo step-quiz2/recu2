@@ -280,6 +280,15 @@ button,input,select,textarea{font:inherit;color:inherit}
   border-radius:6px;background:var(--camp);font-size:.82rem;resize:vertical;
 }
 .codi{margin:.1rem 0 0;font-size:.75rem;color:var(--apagat)}
+/* Temps estimat: verd si hi cap, ambre si probablement no. */
+.temps{display:block;padding:.35rem 0;font-size:.9rem;font-weight:650;font-variant-numeric:tabular-nums}
+.temps.dins{color:var(--verd)}
+.temps.fora{color:var(--ambre)}
+/* Al panell, l'etiqueta que la pregunta té al full quan és un apartat. */
+.q-etiqueta{
+  display:inline-block;padding:0 .3rem;border-radius:4px;
+  background:var(--blau-suau);color:var(--blau);font-weight:650;
+}
 .codi b{font-family:var(--mono)}
 #obre-propia{margin-top:.5rem}
 #propia{margin-top:.6rem}
@@ -440,6 +449,19 @@ button,input,select,textarea{font:inherit;color:inherit}
   font-family:var(--ui);font-size:8.5pt;color:#444;white-space:nowrap;
   border:.6px solid #999;border-radius:3px;padding:.3mm 1.2mm;
 }
+/* ------------------------------------------ apartats d'un exercici
+   «6.» amb la consigna, i a sota a), b)… Cada apartat té el seu espai i les
+   seves eines, i ocupa el mateix carril del marge que una pregunta sola
+   (el mateix truc de `padding-left` amb `margin-left` negatiu). */
+.pregunta.pregunta-grup{break-inside:auto;page-break-inside:auto}
+.grup-cap{break-after:avoid;page-break-after:avoid}
+.apartat{
+  position:relative;margin:2mm 0 0 -15mm;padding-left:15mm;
+  break-inside:avoid;page-break-inside:avoid;
+}
+.apartat > .pregunta-cap{margin-left:9.5mm}
+.apartat-lletra{font-size:10.5pt;font-weight:600;min-width:5mm}
+
 /* ------------------------------------------- eines damunt del full
    Només existeixen a pantalla i a la vista «Prova». No s'imprimeixen mai
    (ho força `imprimir.css`) i no compten per al recompte de pàgines perquè
@@ -469,7 +491,10 @@ button,input,select,textarea{font:inherit;color:inherit}
      inactiva i arriben on toca. */
   pointer-events:none;
 }
-.pregunta:hover .pregunta-eines,
+/* Els botons de la pregunta, o de l'apartat, que té el ratolí a sobre. En
+   un grup, passar pel «6.» no les encén totes: cada apartat té les seves. */
+.pregunta:not(.pregunta-grup):hover > .pregunta-eines,
+.apartat:hover > .pregunta-eines,
 .pregunta-eines:focus-within{opacity:1;pointer-events:auto;z-index:2}
 .pregunta-eines button{
   width:17px;height:17px;padding:0;line-height:1;

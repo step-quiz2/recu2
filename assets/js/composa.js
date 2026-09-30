@@ -330,9 +330,59 @@
     return out;
   }
 
+  /**
+   * Apartats d'un mateix exercici: preguntes CONSECUTIVES amb el mateix
+   * exercici pare i la mateixa consigna surten com una sola pregunta amb
+   * apartats (6a, 6b), que és com s'escriu un examen a mà. La consigna
+   * s'imprimeix un sol cop.
+   *
+   * Cal que la consigna no sigui buida: sense, no hi ha res que les uneixi
+   * a paper (dos problemes de «Comprensió lectora» surten del mateix
+   * generador però són dos problemes diferents).
+   *
+   * Retorna { grups: [[índex, ...], ...], etiquetes: ['1', '2a', '2b', ...] }.
+   * Amb `actiu` fals, cada pregunta és un grup d'un.
+   */
+  function agrupa(preguntes, banc, actiu) {
+    var grups = [];
+    preguntes.forEach(function (q, i) {
+      var it = banc[q.itemId], ant = i ? banc[preguntes[i - 1].itemId] : null;
+      var continua = actiu && it && ant && it.cap && it.cap === ant.cap &&
+                     it.full === ant.full && it.ex === ant.ex;
+      if (continua) grups[grups.length - 1].push(i);
+      else grups.push([i]);
+    });
+    var lletres = 'abcdefghijklmnopqrstuvwxyz', etiquetes = [];
+    grups.forEach(function (g, n) {
+      g.forEach(function (i, k) {
+        etiquetes[i] = String(n + 1) + (g.length > 1 ? (lletres[k] || '.' + (k + 1)) : '');
+      });
+    });
+    return { grups: grups, etiquetes: etiquetes };
+  }
+
+  /* Minuts que necessita un alumne de recuperació per a una pregunta,
+     segons el nivell. No surten dels passos de la resolució: mesurats, els
+     tres nivells en tenen de mitjana gairebé els mateixos (1,8, 2,0 i 2,1).
+     El que els separa és la lectura i la mena de nombres, que és justament
+     el que mesura el nivell. Són una estimació: si amb els teus grups les
+     proves et surten sistemàticament curtes o llargues, es toca aquí. */
+  var MINUTS_NIVELL = { 1: 4, 2: 6, 3: 9 };
+
+  /** Temps estimat de la prova, en minuts. Les preguntes pròpies compten com a nivell 2. */
+  function minuts(preguntes, banc) {
+    return preguntes.reduce(function (a, q) {
+      var it = banc[q.itemId];
+      return a + (MINUTS_NIVELL[it && it.nivell] || MINUTS_NIVELL[2]);
+    }, 0);
+  }
+
   glob.Composa = {
     composa: composa,
     practica: practica,
+    agrupa: agrupa,
+    minuts: minuts,
+    MINUTS_NIVELL: MINUTS_NIVELL,
     reparteix: reparteix,
     puntua: puntua,
     puntsMinims: puntsMinims,

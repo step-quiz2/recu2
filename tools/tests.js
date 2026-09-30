@@ -447,6 +447,47 @@ console.log('Exercicis de pràctica');
     Object.values(window.Composa.practica({ ...spec, n: 0 }, banc, sp)).flat().length === 0);
 }
 
+/* --------------------------------------------------------------- apartats */
+console.log('Apartats i temps');
+{
+  const q = ids => ids.map(id => ({ itemId: id }));
+  const ag = window.Composa.agrupa(q(['p-div-mcd-0', 'p-equ-dos-passos-0', 'p-equ-dos-passos-1',
+                                      'p-equ-dos-passos-2', 'f5-75a']), banc, true);
+  comprova('tres variants seguides del mateix exercici són 2a, 2b, 2c',
+    ag.etiquetes.join() === '1,2a,2b,2c,3', ag.etiquetes.join());
+  comprova('sense agrupar, cada pregunta és un grup d\'un',
+    window.Composa.agrupa(q(['p-equ-dos-passos-0', 'p-equ-dos-passos-1']), banc, false)
+      .etiquetes.join() === '1,2');
+  comprova('només s\'agrupen les SEGUIDES',
+    window.Composa.agrupa(q(['p-equ-dos-passos-0', 'p-div-mcd-0', 'p-equ-dos-passos-1']), banc, true)
+      .etiquetes.join() === '1,2,3');
+  /* Sense consigna no hi ha res que les uneixi a paper: dos problemes de
+     Comprensió lectora surten del mateix generador però no són apartats. */
+  comprova('sense consigna comuna no s\'agrupen',
+    window.Composa.agrupa(q(['p-lec-problema-0', 'p-lec-problema-1']), banc, true)
+      .etiquetes.join() === '1,2');
+  /* Els apartats de repàs (f5-75a, f5-75b…) comparteixen consigna i exercici. */
+  const f575 = window.BANC.items.filter(i => i.full === 5 && i.ex === 75).map(i => i.id);
+  comprova('els apartats d\'un exercici de repàs s\'agrupen',
+    window.Composa.agrupa(q(f575.slice(0, 2)), banc, true).etiquetes.join() === '1a,1b', f575.join());
+  comprova('una llista buida no peta', window.Composa.agrupa([], banc, true).grups.length === 0);
+
+  const M = window.Composa.MINUTS_NIVELL;
+  const tres = ['p-div-mcd-0', 'p-div-mcd-1', 'p-div-mcd-2'];
+  comprova('el temps suma els minuts de cada nivell',
+    window.Composa.minuts(q(tres), banc) === tres.reduce((a, id) => a + M[banc[id].nivell], 0));
+  comprova('una pregunta pròpia compta com a nivell 2',
+    window.Composa.minuts([{ itemId: 'no-existeix' }], banc) === M[2]);
+  comprova('més nivell, més minuts', M[1] < M[2] && M[2] < M[3]);
+  /* Una prova de mínims de 10 preguntes ha de cabre en una hora de classe. */
+  const minims10 = window.Composa.composa(
+    { ...base, perfil: 'minims', sabers: cursos[1].sabers.map(s => s.id), nombre: 10, llavor: 'T' },
+    banc, sp);
+  comprova('10 preguntes de mínims caben en 55 minuts',
+    window.Composa.minuts(minims10.preguntes, banc) <= 55,
+    window.Composa.minuts(minims10.preguntes, banc));
+}
+
 /* ------------------------------------------------------------------ atzar */
 console.log('Atzar');
 const a = new window.Atzar('AB12');
