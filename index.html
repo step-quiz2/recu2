@@ -73,7 +73,11 @@
     </div>
   </main>
 
-  <!-- ------------------------------------------------ panell: composició -->
+  <!-- ------------------------------------------------ panell: composició
+       Els grups de botons (.seg) van dins d'un <div class="camp">, no d'un
+       <label>: un <label> passa el clic al primer control que conté, i
+       clicar el text «Nivell de les preguntes» premia «Mínims» i refeia la
+       prova sencera. -->
   <aside class="panell">
     <div class="panell-cap"><h2>La prova</h2></div>
 
@@ -84,23 +88,23 @@
         <input type="range" id="nombre" min="3" max="30" step="1" value="10">
       </label>
 
-      <label class="camp">
+      <div class="camp">
         <span>Nivell de les preguntes</span>
         <div class="seg" role="group" aria-label="Nivell de les preguntes">
           <button type="button" data-perfil="minims" aria-pressed="true">Mínims</button>
           <button type="button" data-perfil="equilibrat" aria-pressed="false">Equilibrat</button>
           <button type="button" data-perfil="exigent" aria-pressed="false">Exigent</button>
         </div>
-      </label>
+      </div>
 
-      <label class="camp">
+      <div class="camp">
         <span>Reparteix les preguntes segons</span>
         <div class="seg" role="group" aria-label="Criteri de repartiment">
           <button type="button" data-pes="hores" aria-pressed="true">Hores</button>
           <button type="button" data-pes="items" aria-pressed="false">Banc</button>
           <button type="button" data-pes="igual" aria-pressed="false">Igual</button>
         </div>
-      </label>
+      </div>
 
       <div class="fila fila-ample">
         <label class="camp">
@@ -116,14 +120,14 @@
           <input type="number" id="punts" min="1" max="100" step="0.5" value="10">
         </label>
       </div>
-      <label class="camp">
+      <div class="camp">
         <span>Els punts es reparteixen</span>
         <div class="seg" role="group" aria-label="Criteri de puntuació">
           <button type="button" data-criteri="igual" aria-pressed="false">Igual</button>
           <button type="button" data-criteri="nivell" aria-pressed="true">Per nivell</button>
           <button type="button" data-criteri="hores" aria-pressed="false">Per hores</button>
         </div>
-      </label>
+      </div>
       <p class="codi">Codi de la tria: <b id="llavor"></b></p>
     </div>
 
@@ -168,7 +172,7 @@
 
     <div class="grup">
       <h3>Pla de repàs</h3>
-      <label class="camp">
+      <div class="camp">
         <span>Exercicis de pràctica per contingut</span>
         <div class="seg" role="group" aria-label="Exercicis de pràctica per contingut">
           <button type="button" data-practica="0" aria-pressed="false">Cap</button>
@@ -176,7 +180,7 @@
           <button type="button" data-practica="2" aria-pressed="true">2</button>
           <button type="button" data-practica="3" aria-pressed="false">3</button>
         </div>
-      </label>
+      </div>
       <label class="check"><input type="checkbox" id="solucionsPla" checked> Amb les solucions al final</label>
       <p class="ajuda">Del mateix contingut i del mateix nivell que la prova,
         però mai una pregunta de la prova ni, si n'hi ha d'altres, un apartat

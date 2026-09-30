@@ -94,6 +94,24 @@ const paginesPdf = buf => (buf.toString('latin1').match(/\/Type\s*\/Page[^s]/g) 
   const despres = await pag.evaluate(() => document.querySelectorAll('.q').length);
   comprova('✕ treu una pregunta i només una', despres === abans - 1, `${abans} -> ${despres}`);
 
+  /* Un <label> passa el clic al primer control que conté: amb els grups de
+     botons dins d'un <label>, clicar el text «Nivell de les preguntes»
+     premia «Mínims» i refeia la prova sencera. */
+  await pag.click('[data-perfil="exigent"]');
+  await pag.waitForTimeout(300);
+  const hashAbans = await pag.evaluate(() => location.hash);
+  for (const titol of ['Nivell de les preguntes', 'Reparteix les preguntes segons',
+                       'Els punts es reparteixen']) {
+    await pag.getByText(titol, { exact: true }).click();
+  }
+  await pag.waitForTimeout(300);
+  const perfil = await pag.evaluate(() =>
+    document.querySelector('[data-perfil][aria-pressed=true]').dataset.perfil);
+  comprova('clicar el títol d\'un grup de botons no el prem',
+    perfil === 'exigent' && hashAbans === await pag.evaluate(() => location.hash), perfil);
+  await pag.click('[data-perfil="minims"]');
+  await pag.waitForTimeout(300);
+
   console.log('Paper');
   /* El comptador de pàgines ha de dir el mateix que el PDF real. */
   const estimat = await pag.evaluate(() =>
