@@ -40,11 +40,21 @@ comprova('els ítems sense enunciat conserven la consigna encara que s\'apaguin'
 comprova('cap saber del currículum es queda sense preguntes',
   cursos.every(c => c.sabers.every(s => s.items.length)));
 /* Cap equació amb denominadors al nivell mínim: resoldre x/5 = 3 no és de
-   mínims per a qui ve de suspendre tot el curs, encara que sigui d'un pas. */
+   mínims per a qui ve de suspendre tot el curs, encara que sigui d'un pas.
+   La llista de blocs on la fracció SÍ que és el tema es llegeix de
+   `mapa_curricular.py`: amb una còpia aquí, afegir-hi un bloc allà feia
+   petar aquesta prova sense motiu. */
+const BLOCS_DE_FRACCIONS = (() => {
+  const py = require('fs').readFileSync(path.join(arrel, 'tools/mapa_curricular.py'), 'utf8');
+  const cos = py.slice(py.indexOf('BLOCS_DE_FRACCIONS = {'));
+  return (cos.slice(0, cos.indexOf('}')).match(/"([^"]+)"/g) || []).map(x => x.slice(1, -1));
+})();
+comprova('la llista de blocs de fraccions es llegeix de mapa_curricular.py',
+  BLOCS_DE_FRACCIONS.includes('fraccions') && BLOCS_DE_FRACCIONS.length >= 5,
+  BLOCS_DE_FRACCIONS.join());
 comprova('cap ítem de nivell 1 porta fraccions fora del seu tema',
   window.BANC.items.filter(i => i.nivell === 1 && /\\d?frac/.test(i.enunciat))
-    .every(i => ['fraccions', 'decimals', 'percentatges',
-                 'factor_multiplicador', 'directa_inversa'].includes(i.bloc)),
+    .every(i => BLOCS_DE_FRACCIONS.includes(i.bloc)),
   window.BANC.items.filter(i => i.nivell === 1 && /\\d?frac/.test(i.enunciat))
     .map(i => i.id + '/' + i.bloc).slice(0, 5).join());
 comprova('el bloc de fraccions conserva els seus ítems de nivell 1',
