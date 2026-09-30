@@ -161,7 +161,9 @@
     '<text x="96" y="34" class="fig-etq petita">c</text></svg>';
 
   /* ------------------------------------------------------------- registre */
-  var G = [], PER_ID = {};
+  // Sense prototip: l'id pot venir de l'adreça, i «constructor» no ha de
+  // trobar la funció d'Object.
+  var G = [], PER_ID = Object.create(null);
 
   /**
    * Dues declaracions que abans es deduïen amb una regex sobre la llargada

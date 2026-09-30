@@ -5,7 +5,7 @@ Compila el banc de preguntes i el mapa curricular de l'eina.
   python3 tools/compila.py --repas <ruta-a-repas-main> --llibre <ruta-a-llibre-main>
 
 Llegeix els dotze `data/fullN.js` de repàs, es queda només amb els ítems que
-el mapa curricular assigna a algun saber de 1r o 2n d'ESO, i escriu:
+el mapa curricular assigna a algun saber de 1r, 2n o 3r d'ESO, i escriu:
 
   assets/js/banc.js   window.BANC = {items:[...]}   enunciats + solucions
   assets/js/mapa.js   window.MAPA = {cursos:[...]}  currículum + cobertura
@@ -398,8 +398,11 @@ def main():
         })
 
     # Títols de les unitats i activitats del llibre, per al pla de repàs.
+    # Tots els cursos del mapa: amb la llista escrita a mà ("1eso", "2eso"),
+    # en afegir 3r el seu llibre no s'hi va llegir mai i el pla de repàs de
+    # 3r sortia sense cap referència.
     llibre = {}
-    for c in ("1eso", "2eso"):
+    for c in [curs["id"] for curs in CURSOS]:
         ruta = os.path.join(args.llibre, "contingut", c, "course.json")
         if not os.path.exists(ruta):
             avisos.append(f"llibre: falta {ruta}")
