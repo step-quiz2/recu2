@@ -57,6 +57,19 @@ const paginesPdf = buf => (buf.toString('latin1').match(/\/Type\s*\/Page[^s]/g) 
   comprova('es llisten els continguts', inici.sabers >= 50, inici.sabers);
   comprova('hi ha un codi de tria de cinc caràcters', /^[0-9A-Z]{5}$/.test(inici.llavor), inici.llavor);
 
+  /* Cada curs es plega i es desplega clicant-ne la barra. */
+  const sabersDe = c => pag.evaluate(id =>
+    document.querySelectorAll(`[data-saber^="${id}-"]`).length, c);
+  let plegables = true;
+  for (const c of ['1eso', '2eso', '3eso']) {
+    const obert = await sabersDe(c);
+    await pag.click(`[data-plega="${c}"]`);
+    const plegat = await sabersDe(c);
+    await pag.click(`[data-plega="${c}"]`);
+    if (!(obert > 0 && plegat === 0 && await sabersDe(c) === obert)) plegables = false;
+  }
+  comprova('els tres cursos es pleguen i es despleguen', plegables);
+
   console.log('Composició');
   await pag.click('[data-curs="1eso"]');
   await pag.waitForTimeout(600);

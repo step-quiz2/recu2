@@ -857,10 +857,13 @@
           '<button type="button" class="plega" data-plega="' + esc(curs.id) + '" ' +
             'aria-expanded="' + !plegat + '" title="' +
             (plegat ? 'Desplega el curs' : 'Plega el curs') + '">' +
-            '<span class="fletxa" aria-hidden="true">' + (plegat ? '\u25b8' : '\u25be') + '</span>' +
+            // Una fletxa que gira (CSS), prou gran per veure-la d'una ullada.
+            '<svg class="fletxa" viewBox="0 0 12 12" aria-hidden="true">' +
+              '<path d="M3 4.5 6 7.5 9 4.5" fill="none" stroke="currentColor" ' +
+              'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
             '<strong>' + esc(curs.titol) + '</strong>' +
+            '<span class="compte">' + triats + ' / ' + totalAmbBanc + '</span>' +
           '</button>' +
-          '<span class="compte">' + triats + ' / ' + totalAmbBanc + '</span>' +
           '<button class="mini" data-curs="' + esc(curs.id) + '" aria-pressed="' + tots + '">' +
             (tots ? 'Treu-ho tot' : 'Tot el curs') + '</button>' +
         '</div>' +
