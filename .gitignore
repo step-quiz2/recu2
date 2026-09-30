@@ -1,0 +1,5 @@
+# Generats en compilar o provar: no formen part de l'eina.
+__pycache__/
+*.pyc
+node_modules/
+package-lock.json

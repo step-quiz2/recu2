@@ -1,0 +1,43 @@
+# ═══════════════════════════════════════════════════════════════════════
+#  Descomprimeix els ZIP que es pugen a _uploads/ a l'arrel del repositori,
+#  esborra el ZIP i en fa un commit. És el mateix workflow que el del banc
+#  de 2n de batxillerat.
+#
+#  El missatge del commit NO porta «[skip ci]»: Cloudflare Pages no
+#  publicaria el canvi.
+#
+#  Els fitxers de .github/workflows/ no poden arribar per aquesta via: el
+#  bot no hi té permís. Es creen i s'editen des de la web de GitHub.
+# ═══════════════════════════════════════════════════════════════════════
+name: Extract and commit zip uploads
+
+on:
+  push:
+    paths:
+      - '_uploads/**.zip'
+
+permissions:
+  contents: write
+
+jobs:
+  unzip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Unzip uploaded files
+        run: |
+          shopt -s nullglob
+          for z in _uploads/*.zip; do
+            echo "Processing $z"
+            unzip -o "$z" -d .
+            rm "$z"
+          done
+
+      - name: Commit and push changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || git commit -m "Auto-extract uploaded zip"
+          git push
