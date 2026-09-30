@@ -989,6 +989,47 @@
     $('#llista').innerHTML = h;
   }
 
+  /* ------------------------------------------------ exercicis de pràctica */
+  /**
+   * Els exercicis de pràctica del pla de repàs. La tria la fa
+   * `Composa.practica` amb el catàleg; quan un contingut no en té prou
+   * (Comprensió lectora de 1r, 2n i 3r comparteixen els mateixos sis
+   * ítems) i té generadors, se'n fabriquen variants noves, que no poden
+   * coincidir amb cap pregunta de la prova ni amb cap altre exercici.
+   *
+   * Les llavors són deterministes (surten del codi de la prova): la mateixa
+   * adreça dona sempre el mateix pla.
+   */
+  function practicaDelPla() {
+    var n = estat.cfg.practica;
+    var idsProva = estat.preguntes.map(function (q) { return q.itemId; });
+    var pr = window.Composa.practica({
+      sabers: estat.sabers, n: n, perfil: estat.spec.perfil,
+      llavor: estat.spec.llavor, prova: idsProva
+    }, banc, sabersPerId);
+
+    var vistes = {};
+    var marca = function (id) { if (banc[id]) vistes[firma(banc[id])] = true; };
+    idsProva.forEach(marca);
+    Object.keys(pr).forEach(function (sid) { pr[sid].forEach(marca); });
+    var pes = window.Composa.PERFILS[estat.spec.perfil] || window.Composa.PERFILS.minims;
+
+    estat.sabers.forEach(function (sid, k) {
+      if (!pr[sid] || pr[sid].length >= n) return;
+      // Els generadors del nivell que la prova demana; si no n'hi ha cap, tots.
+      var gens = (gensPerSaber[sid] || []).filter(function (g) { return pes[g.nivell] >= 1; });
+      if (!gens.length) gens = gensPerSaber[sid] || [];
+      for (var t = 0; pr[sid].length < n && gens.length && t < 40; t++) {
+        var it = variant(gens[t % gens.length].id, 'pr' + estat.spec.llavor + 's' + k + 't' + t);
+        if (it && !vistes[firma(it)]) {
+          vistes[firma(it)] = true;
+          pr[sid].push(it.id);
+        }
+      }
+    });
+    return pr;
+  }
+
   /* --------------------------------------------------------------- el full */
   function pintaFull() {
     var cfg = Object.create(estat.cfg);
@@ -997,13 +1038,7 @@
     cfg.fixades = estat.fixades;
 
     var dades = { cfg: cfg, preguntes: estat.preguntes, sabers: estat.sabers };
-    if (estat.vista === 'pla') {
-      dades.practica = window.Composa.practica({
-        sabers: estat.sabers, n: estat.cfg.practica, perfil: estat.spec.perfil,
-        llavor: estat.spec.llavor,
-        prova: estat.preguntes.map(function (q) { return q.itemId; })
-      }, banc, sabersPerId);
-    }
+    if (estat.vista === 'pla') dades.practica = practicaDelPla();
     var html = estat.vista === 'clau' ? window.Full.clau(dades, banc, sabersPerId)
              : estat.vista === 'pla' ? window.Full.pla(dades, banc, sabersPerId, MAPA)
              : window.Full.prova(dades, banc, sabersPerId);

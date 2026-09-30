@@ -1,0 +1,52 @@
+# ═══════════════════════════════════════════════════════════════════════
+#  Proves de l'eina. S'executa sola a cada push i a cada pull request, i
+#  també quan acaba l'extracció d'un ZIP de _uploads (GitHub no dispara els
+#  workflows amb els commits del bot, però sí amb `workflow_run`).
+#  ─────────────────────────────────────────────────────────────────────
+#  No escriu res al repositori: només diu si tot va bé (verd) o què falla
+#  (vermell). Per tant no fa cap commit i no interfereix amb Cloudflare.
+# ═══════════════════════════════════════════════════════════════════════
+name: Proves
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:        # botó «Run workflow» per llançar-lo a mà
+  workflow_run:
+    workflows: ["Extract and commit zip uploads"]
+    types: [completed]
+
+permissions:
+  contents: read
+
+concurrency:                # dos push seguits: només compta l'últim
+  group: proves-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  proves:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Lògica (repartiment, punts, composició, pràctica)
+        run: node tools/tests.js
+
+      - name: Generadors (aritmètica, LaTeX, llengua)
+        run: node tools/genera.js --comprova
+
+      - name: banc.js i mapa.js al dia, compilació determinista
+        run: python3 tools/prova_compilacio.py
+
+      - name: Instal·la Playwright i Chromium
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+
+      - name: L'eina en un navegador de debò (pantalla, PDF, adreça)
+        run: node tools/prova.js
