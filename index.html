@@ -88,6 +88,17 @@
         <input type="range" id="nombre" min="3" max="30" step="1" value="10">
       </label>
 
+      <div class="fila">
+        <label class="camp">
+          <span>Durada (minuts)</span>
+          <input type="number" id="durada" min="5" max="600" step="5" value="55">
+        </label>
+        <div class="camp">
+          <span>Temps estimat</span>
+          <output id="temps" class="temps" for="durada nombre">—</output>
+        </div>
+      </div>
+
       <div class="camp">
         <span>Nivell de les preguntes</span>
         <div class="seg" role="group" aria-label="Nivell de les preguntes">
@@ -168,6 +179,7 @@
       <label class="check"><input type="checkbox" id="figures" checked> Inclou les figures</label>
       <label class="check"><input type="checkbox" id="encapcalaments" checked> Inclou els enunciats generals</label>
       <label class="check"><input type="checkbox" id="mostraPunts"> Mostra els punts de cada pregunta</label>
+      <label class="check"><input type="checkbox" id="agrupa" checked> Agrupa els apartats d'un mateix exercici (6a, 6b)</label>
     </div>
 
     <div class="grup">

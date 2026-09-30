@@ -81,6 +81,28 @@ quins cursos tens plegats.
 sistema operatiu. El full no canvia mai de color: és paper. La preferència es
 desa al navegador, no a la prova.
 
+**Apartats (6a, 6b).** Si dues o més preguntes SEGUIDES són del mateix
+exercici i tenen la mateixa consigna, surten com una sola pregunta amb apartats:
+«6. Resol aquestes equacions.» i a sota a), b), c), cadascun amb el seu espai de
+resposta, els seus punts i les seves icones al marge. La consigna s'imprimeix
+un sol cop. La clau i la graella de correcció les numeren 6a, 6b, 6c, i al
+panell de la dreta cada pregunta porta l'etiqueta que té al full quan no
+coincideix amb la posició. Passa amb els apartats del banc de repàs (f5-75a,
+f5-75b…) i amb les variants d'un mateix generador; dos problemes de
+*Comprensió lectora*, que no tenen consigna comuna, no s'agrupen. Per tenir-les
+separades, desmarca *Agrupa els apartats d'un mateix exercici* al grup *Full*.
+
+**Temps estimat.** Al costat de *Durada (minuts)* (per defecte 55, una hora de
+classe) surt quant tardarà l'alumne a fer la prova: en verd si hi cap, en ambre
+si probablement no. Compta 4 minuts per pregunta de nivell 1, 6 de nivell 2 i 9
+de nivell 3 (les pròpies, com a nivell 2). No surt dels passos de la resolució:
+mesurats, els tres nivells en tenen de mitjana gairebé els mateixos (1,8, 2,0 i
+2,1); el que els separa és la lectura i la mena de nombres, que és justament el
+que mesura el nivell. És una estimació: si amb els teus grups les proves surten
+sistemàticament curtes o llargues, els tres valors són a `MINUTS_NIVELL`, a
+`assets/js/composa.js`. Una prova de mínims de 10 preguntes surt a uns 40
+minuts. La durada es desa amb *Els meus valors inicials* i a l'adreça.
+
 **Exercicis de pràctica.** Al grup *Pla de repàs* del panell tries quants
 exercicis per contingut (cap, 1, 2 o 3) porta el pla, i si hi van les solucions
 al final. Són del mateix contingut i del mateix nivell que la prova, i la regla
@@ -464,10 +486,10 @@ La compilació s'atura si el nivell que declara un generador no és el que mesur
 ## Comprovar que tot funciona
 
 ```sh
-node tools/tests.js               # 156 comprovacions de la lògica, cap dependència
+node tools/tests.js               # 166 comprovacions de la lògica, cap dependència
 node tools/genera.js --comprova   # els 60 generadors sobre 12 000 variants
 python3 tools/prova_compilacio.py # banc.js i mapa.js al dia, compilació determinista
-node tools/prova.js               # 34 comprovacions en un navegador de debò
+node tools/prova.js               # 45 comprovacions en un navegador de debò
 ```
 
 Totes quatre acaben amb codi 1 si alguna cosa falla. `prova.js` abans només
@@ -515,9 +537,6 @@ mentre en quedin d'altres), i que el mateix codi doni sempre el mateix examen.
   surti del navegador. Si vols saber què ha practicat un alumne abans de decidir
   què li preguntes, això ho fa l'analitzador de `repas` amb el codi de
   verificació; són dues eines separades a propòsit.
-- **No agrupa apartats.** Si dos ítems del mateix exercici entren a la mateixa
-  prova, surten com dues preguntes numerades i no com «6a» i «6b». És la millora
-  més evident que hi queda per fer.
 
 ---
 

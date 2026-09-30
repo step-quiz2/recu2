@@ -115,6 +115,18 @@
               ? '<div class="figura-cont">' + it.figura + '</div>' : '');
   }
 
+  /**
+   * Els grups d'apartats (vegeu `Composa.agrupa`) i l'etiqueta de cada
+   * pregunta: «6», o «6a» i «6b». Si no n'hi ha, cada pregunta va sola.
+   */
+  function grupsDe(estat) {
+    return estat.agrupacio ? estat.agrupacio.grups
+      : estat.preguntes.map(function (_, i) { return [i]; });
+  }
+  function etiquetaDe(estat, i) {
+    return estat.agrupacio ? estat.agrupacio.etiquetes[i] : String(i + 1);
+  }
+
   /* ---------------------------------------------------------------- prova */
   function prova(estat, banc, sabersPerId) {
     var cfg = estat.cfg, p = estat.preguntes;
@@ -135,28 +147,68 @@
       return h + peu(cfg, 'prova');
     }
 
+    var espai = cfg.espai > 0
+      ? '<div class="espai ' + esc(cfg.paper) + '" style="--espai:' + cfg.espai + 'mm"></div>'
+      : '';
+    var punts = function (v) {
+      return cfg.mostraPunts ? '<span class="pregunta-punts">' + num(v) + ' p</span>' : '';
+    };
+    /* Els controls van damunt del full i no en un panell a part: per
+       decidir si una pregunta et va bé, l'has d'estar mirant.
+       `imprimir.css` els amaga sempre, i en pantalla estreta els amaga el
+       CSS i els torna a treure el panell, on sí que es poden tocar amb el
+       dit. */
+    var einesDe = function (i) {
+      var q = p[i];
+      return cfg.editable
+        ? eines(i, q, p.length, sabersPerId[q.saberId], cfg, banc[q.itemId]) : '';
+    };
+
     h += '<ol class="preguntes">';
-    p.forEach(function (q, i) {
-      var it = banc[q.itemId];
-      if (!it) return;
-      h += '<li class="pregunta">' +
-             '<div class="pregunta-cap">' +
-               '<span class="pregunta-num">' + (i + 1) + '.</span>' +
-               '<div class="pregunta-cos">' + cosItem(it, cfg) + '</div>' +
-               (cfg.mostraPunts
-                 ? '<span class="pregunta-punts">' + num(q.punts) + ' p</span>' : '') +
-             '</div>' +
-             /* Els controls van damunt del full i no en un panell a part:
-                per decidir si una pregunta et va bé, l'has d'estar mirant.
-                `imprimir.css` els amaga sempre, i en pantalla estreta els
-                amaga el CSS i els torna a treure el panell, on sí que es
-                poden tocar amb el dit. */
-             (cfg.editable
-               ? eines(i, q, p.length, sabersPerId[q.saberId], cfg, it) : '') +
-             (cfg.espai > 0
-               ? '<div class="espai ' + esc(cfg.paper) + '" style="--espai:' +
-                 cfg.espai + 'mm"></div>' : '') +
-           '</li>';
+    grupsDe(estat).forEach(function (g, n) {
+      g = g.filter(function (i) { return banc[p[i].itemId]; });
+      if (!g.length) return;
+      if (g.length === 1) {
+        var q = p[g[0]], it = banc[q.itemId];
+        h += '<li class="pregunta">' +
+               '<div class="pregunta-cap">' +
+                 '<span class="pregunta-num">' + (n + 1) + '.</span>' +
+                 '<div class="pregunta-cos">' + cosItem(it, cfg) + '</div>' +
+                 punts(q.punts) +
+               '</div>' +
+               einesDe(g[0]) + espai +
+             '</li>';
+        return;
+      }
+      /* Apartats d'un mateix exercici: la consigna un sol cop i, a sota,
+         a), b)… cadascun amb el seu espai i les seves eines. La consigna
+         surt si l'opció d'enunciats generals és activa o si algun apartat
+         la necessita (`capCal`). */
+      var primer = banc[p[g[0]].itemId];
+      var ambCap = cfg.encapcalaments ||
+        g.some(function (i) { return banc[p[i].itemId].capCal; });
+      h += '<li class="pregunta pregunta-grup partible">' +
+             '<div class="pregunta-cap grup-cap">' +
+               '<span class="pregunta-num">' + (n + 1) + '.</span>' +
+               '<div class="pregunta-cos">' +
+                 (ambCap ? '<span class="encap">' + primer.cap + '</span>' : '') +
+               '</div>' +
+             '</div>';
+      g.forEach(function (i, k) {
+        var q = p[i], it = banc[q.itemId];
+        h += '<div class="apartat">' +
+               '<div class="pregunta-cap">' +
+                 '<span class="apartat-lletra">' + 'abcdefghijklmnopqrstuvwxyz'.charAt(k) + ')</span>' +
+                 '<div class="pregunta-cos">' + it.enunciat +
+                   (it.figura && (cfg.figures || it.figuraCal)
+                     ? '<div class="figura-cont">' + it.figura + '</div>' : '') +
+                 '</div>' +
+                 punts(q.punts) +
+               '</div>' +
+               einesDe(i) + espai +
+             '</div>';
+      });
+      h += '</li>';
     });
     h += '</ol>';
 
@@ -185,7 +237,7 @@
       var s = solucio(it);
       var saber = sabersPerId[q.saberId];
       h += '<tr>' +
-             '<td class="n">' + (i + 1) + '</td>' +
+             '<td class="n">' + etiquetaDe(estat, i) + '</td>' +
              '<td>' +
                '<div class="clau-resposta">' + s.r + '</div>' +
                (s.p && s.p.length
@@ -205,7 +257,7 @@
        pregunta mentre es corregeix, sense haver de buscar-la a la taula. */
     h += '<h2 class="graella-tit">Graella de correcció</h2>' +
          '<table class="graella"><thead><tr><th>Pregunta</th>';
-    p.forEach(function (_, i) { h += '<th>' + (i + 1) + '</th>'; });
+    p.forEach(function (_, i) { h += '<th>' + etiquetaDe(estat, i) + '</th>'; });
     h += '<th>Total</th></tr></thead><tbody><tr><th>Sobre</th>';
     p.forEach(function (q) { h += '<td>' + num(q.punts) + '</td>'; });
     h += '<td>' + num(p.reduce(function (a, q) { return a + q.punts; }, 0)) +
